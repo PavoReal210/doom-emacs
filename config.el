@@ -1,4 +1,4 @@
-(setq doom-font (font-spec :family "Cozette" :weight 'medium :height 120)
+(setq doom-font (font-spec :family "CozetteVector" :weight 'medium :height 120)
       doom-big-font (font-spec :family "Overpass Nerd Font" :height 140)
       doom-variable-pitch-font (font-spec :family "Overpass Nerd Font" :height 1.2))
 
@@ -16,11 +16,17 @@
 
 (setq org-directory "~/Dropbox/org-notes/")
 
-(when (member "Cozette" (font-family-list))
+(when (member "CozetteVector" (font-family-list))
   (set-face-attribute 'default nil :font "Overpass Nerd Font" :height 100)
-  (set-face-attribute 'fixed-pitch nil :family "Cozette" :weight 'medium))
+  (set-face-attribute 'fixed-pitch nil :family "CozetteVector" :weight 'medium :height 1.2))
 (when (member "Overpass Nerd Font" (font-family-list))
   (set-face-attribute 'variable-pitch nil :family "Overpass Nerd Font" :height 1.2))
+
+;; Keep regular programming buffers at the same scale as Org prose while
+;; retaining CozetteVector for code.
+(defun my/programming-font-scale ()
+  (face-remap-add-relative 'default :family "CozetteVector" :height 1.2))
+(add-hook 'prog-mode-hook #'my/programming-font-scale)
 
 (after! org
   (global-org-modern-mode)
@@ -92,10 +98,10 @@
 (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
 ;; Ensure that some parts of Org will always use fixed-pitch fonts even if variable-pitch-mode is on
 (set-face-attribute 'org-block nil            :foreground nil :inherit
-                    'fixed-pitch :height 0.85)
-(set-face-attribute 'org-code nil             :inherit '(shadow fixed-pitch) :height 0.85)
-(set-face-attribute 'org-indent nil           :inherit '(org-hide fixed-pitch) :height 0.85)
-(set-face-attribute 'org-verbatim nil         :inherit '(shadow fixed-pitch) :height 0.85)
+                    'fixed-pitch :height 1.0)
+(set-face-attribute 'org-code nil             :inherit '(shadow fixed-pitch) :height 1.0)
+(set-face-attribute 'org-indent nil           :inherit '(org-hide fixed-pitch) :height 1.0)
+(set-face-attribute 'org-verbatim nil         :inherit '(shadow fixed-pitch) :height 1.0)
 (set-face-attribute 'org-special-keyword nil  :inherit '(font-lock-comment-face
                                                          fixed-pitch))
 (set-face-attribute 'org-meta-line nil        :inherit '(font-lock-comment-face fixed-pitch))
