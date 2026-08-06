@@ -251,29 +251,6 @@
    (nerd-icons-octicon "nf-oct-book" :face 'doom-dashboard-menu-title)
    :action doom/help)))
 
-(after! lsp-php
-  ;; Disable other PHP LSPs over TRAMP
-  (setq lsp-disabled-clients
-        '(iph-tramp phpactor-tramp serenata-tramp php-ls-tramp semgrep-ls-tramp))
-
-  (lsp-register-client
-   (make-lsp-client
-    :new-connection
-    (lsp-tramp-connection
-     '("/home/railgun/.npm-global/bin/intelephense" "--stdio"))
-    :major-modes '(php-mode)
-    :remote? t
-    :priority 10
-    :server-id 'intelephense-remote)))
-
-(after! tramp
-  ;; Keep PATH minimal to avoid TRAMP slowdowns
-  (setq tramp-remote-path
-        '("/home/railgun/.npm-global/bin"
-          "/usr/bin"
-          "/usr/local/bin"
-          tramp-own-remote-path)))
-
 (after! lsp-mode
   (setq lsp-enable-file-watchers nil)
   (setq lsp-file-watch-threshold 500)) ; Lower the threshold for what counts as "too many files")
@@ -330,7 +307,7 @@
 ;; memoize all git candidates in the current project
 (defvar $counsel-git-cands-cache nil)
 (defun $memoize-counsel-git-cands (orig dir)
-  ($memoize-remote (magit-toplevel dir) '$counsel-git-cands-cache orig dir))
+  (memoize-remote (magit-toplevel dir) '$counsel-git-cands-cache orig dir))
 (advice-add 'counsel-git-cands :around #'$memoize-counsel-git-cands)
 
 (after! eww
@@ -338,14 +315,6 @@
                '("\\*eww\\*"
                  (display-buffer-reuse-window
                   display-buffer-pop-up-window))))
-
-(setq sql-connection-alist
-      '((my-remote-db
-         (sql-product 'mysql)
-         (sql-port 3306)                   ; 5432 for Postgres, 3306 for MySQL
-         (sql-server "192.168.50.179")
-         (sql-user "wordpress")
-         (sql-database "wordpress"))))
 
 (defun profiler-report-expand-all ()
    "Expand all entries in the profiler report recursively."
