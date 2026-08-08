@@ -22,10 +22,10 @@
 (when (member "Overpass Nerd Font" (font-family-list))
   (set-face-attribute 'variable-pitch nil :family "Overpass Nerd Font" :height 1.2))
 
-;; Keep regular programming buffers at the same scale as Org prose while
-;; retaining CozetteVector for code.
+;; Make programming buffers more readable on the 4K display while retaining
+;; CozetteVector for code.
 (defun my/programming-font-scale ()
-  (face-remap-add-relative 'default :family "CozetteVector" :height 1.2))
+  (face-remap-add-relative 'default :family "CozetteVector" :height 1.4))
 (add-hook 'prog-mode-hook #'my/programming-font-scale)
 
 (after! org
@@ -265,6 +265,30 @@
 (setq magit-branch-direct-configure nil)
 ;; don't automatically refresh the status buffer after running a git command
 (setq magit-refresh-status-buffer nil)
+
+(after! magit
+  ;; Show inline changes inside modified hunks.
+  (setq magit-diff-refine-hunk 'all)
+
+  ;; The custom doom-nebula-blue theme defines hunk headings but not the
+  ;; added/removed diff faces, so define readable foreground/background pairs.
+  (custom-set-faces!
+    '(magit-diff-added
+      :foreground "#79CF72"
+      :background "#00302B"
+      :extend t)
+    '(magit-diff-added-highlight
+      :foreground "#A8F29F"
+      :background "#00483F"
+      :extend t)
+    '(magit-diff-removed
+      :foreground "#FF6C6B"
+      :background "#3A1B27"
+      :extend t)
+    '(magit-diff-removed-highlight
+      :foreground "#FF9B9A"
+      :background "#572637"
+      :extend t)))
 
 (defun memoize-remote (key cache orig-fn &rest args)
   "Memoize a value if the key is a remote path."
