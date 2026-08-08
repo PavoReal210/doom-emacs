@@ -58,18 +58,16 @@ If you do this correctly and use git to synchronize everything for your doom ema
     #+END_SRC
 *** Org Mode Font Settings
     This sets the font for org mode
+    - What it all means:
+      - Normally text is in the global =default= face so for general text we use =Overpass Nerd Font=.
+      - For =fixed-pitch= mode which is sued by Org source blocks, Markdown blocks, and some UI elements, we want to specifically use =CozetteVector=.
+      - =variable-pitch= is used for Org mode.
 #+BEGIN_SRC emacs-lisp :tangle config.el
 (when (member "CozetteVector" (font-family-list))
   (set-face-attribute 'default nil :font "Overpass Nerd Font" :height 100)
-  (set-face-attribute 'fixed-pitch nil :family "CozetteVector" :weight 'medium :height 1.2))
+  (set-face-attribute 'fixed-pitch nil :family "CozetteVector" :weight 'medium :height 1.4))
 (when (member "Overpass Nerd Font" (font-family-list))
   (set-face-attribute 'variable-pitch nil :family "Overpass Nerd Font" :height 1.2))
-
-;; Make programming buffers more readable on the 4K display while retaining
-;; CozetteVector for code.
-(defun my/programming-font-scale ()
-  (face-remap-add-relative 'default :family "CozetteVector" :height 1.4))
-(add-hook 'prog-mode-hook #'my/programming-font-scale)
 #+END_SRC
 *** Org Mode General Settings
 **** Bullet Settings
