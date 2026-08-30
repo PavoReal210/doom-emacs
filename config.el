@@ -45,6 +45,15 @@
       org-image-actual-width 900
       org-download-screenshot-method
       "wl-paste --type image/png > %s")
+(setq org-download-link-format "[[file:%s]]")
+;; No "#+DOWNLOADED: screenshot @ ..." annotation line
+(setq org-download-annotate-function (lambda (_link) ""))
+;; Insert the link at point without forcing a new line — OneNote-style inline
+;; paste. Position cursor where you want the image, then SPC m c c.
+(defun my/org-download-insert-link-inline (_link filename)
+  "Insert image link at point, inline, with no preceding newline."
+  (insert (funcall org-download-link-format-function filename)))
+(advice-add 'org-download-insert-link :override #'my/org-download-insert-link-inline)
 
 ;; Always display inline images
 (setq org-startup-with-inline-images t)
