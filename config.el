@@ -56,7 +56,7 @@
       org-download-heading-lvl nil
       org-image-actual-width 400
       org-download-screenshot-method
-      "wl-paste --type image/png > %s")
+      "wl-paste --no-newline --type image/png > %s")
 (setq org-download-link-format "[[file:%s]]")
 
 ;; Always display inline images
@@ -197,9 +197,7 @@
 ;; Disable line numbers in org mode
 (add-hook 'org-mode-hook #'doom-disable-line-numbers-h)
 
-(setq olivetti-body-width 0.6) ;; 60% of window width — 20% margin on each side
-(add-hook 'org-mode-hook #'olivetti-mode)
-(add-hook 'markdown-mode-hook #'olivetti-mode))
+)
 
 (after! ispell
   (setq ispell-program-name "aspell"

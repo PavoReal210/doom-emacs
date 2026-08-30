@@ -115,7 +115,7 @@ Note: You DID switch to Wayland and this did break. So this is how you fixed it 
         org-download-heading-lvl nil
         org-image-actual-width 400
         org-download-screenshot-method
-        "wl-paste --type image/png > %s")
+        "wl-paste --no-newline --type image/png > %s")
   (setq org-download-link-format "[[file:%s]]")
 #+END_SRC
 **** Inline Image Settings
@@ -295,14 +295,7 @@ A few things to make text a bit easier to view in Org mode so that the line brea
   (add-hook 'org-mode-hook 'visual-line-mode)
   ;; Disable line numbers in org mode
   (add-hook 'org-mode-hook #'doom-disable-line-numbers-h)
-#+END_SRC
-***** Olivetti
-We use Olivetti to create a nicer writing environment and then enable it for org mode and markdown.
-Set as a float (0.0–1.0) so it adapts to any window width. 0.6 = 60% body text, 20% margin on each side — just enough centering to be comfortable without feeling like a narrow column.
-#+BEGIN_SRC emacs-lisp :tangle config.el
-  (setq olivetti-body-width 0.6) ;; 60% of window width — 20% margin on each side
-  (add-hook 'org-mode-hook #'olivetti-mode)
-  (add-hook 'markdown-mode-hook #'olivetti-mode))
+)
 #+END_SRC
 ** Spellcheckers
 Spell-fu uses aspell under the hood to check words against a dictionary.
@@ -642,11 +635,6 @@ I can't quit Everforest
 (package! everforest :recipe (:repo "https://github.com/theorytoe/everforest-emacs.git") :pin "ba61a881b5d57810eef76baae01c951d1e6c2ceb")
 #+END_SRC
 ** Org Mode Packages
-*** Olivetti
-Creates a nicer writing environment for Org mode by shifting everything to the right slightly. 
-#+BEGIN_SRC emacs-lisp :tangle packages.el
-(package! olivetti)
-#+END_SRC
 *** Fragtog
 Support in-line previews of Latex code
 [[file:Packages/org_20260207-152751_demo.gif]]
