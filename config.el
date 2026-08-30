@@ -42,7 +42,8 @@
       org-download-image-dir "~/org-notes/.resources"
       org-download-timestamp "org_%Y%m%d-%H%M%S_"
       org-download-heading-lvl nil
-      org-image-actual-width 900
+      org-image-actual-width nil  ; use each image's actual size — no upscaling small images
+      org-image-max-width 800     ; cap for Retina display (800 logical px ≈ previous 900 feel)
       org-download-screenshot-method
       "wl-paste --type image/png > %s")
 (setq org-download-link-format "[[file:%s]]")
