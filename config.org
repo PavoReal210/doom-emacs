@@ -93,16 +93,30 @@ This setup uses org-modern for custom bullets.
 This is necessary to enable pasting in images into org mode.
 +This is built around Flameshot and xclip. If I ever switch to wayland, this will probably break.+
 Note: You DID switch to Wayland and this did break. So this is how you fixed it using wl-clipboard:
+- Workflow: take a screenshot with =Super+Shift+S= (copies to clipboard), then use =SPC m c c= (=org-download-clipboard=) to paste it inline.
+- Both =XDG_SESSION_TYPE= and =WAYLAND_DISPLAY= must be set — the daemon inherits neither from the compositor session.
 #+BEGIN_SRC emacs-lisp :tangle config.el
+  ;; `org-download-clipboard' checks this env var to pick wl-paste vs xclip.
+  ;; The emacs daemon (systemd service) doesn't inherit a session type, so
+  ;; clipboard paste used to fail with "Please install xclip". Set it here.
+  (setenv "XDG_SESSION_TYPE" "wayland")
+  ;; WAYLAND_DISPLAY is also not inherited by the Emacs daemon — without it
+  ;; wl-paste cannot open the compositor socket (produces 0-byte image files).
+  (unless (getenv "WAYLAND_DISPLAY")
+    (setenv "WAYLAND_DISPLAY" "wayland-1"))
   (require 'org-download)
+  ;; NOTE: `org-download-image-dir' is automatically buffer-local, so a plain
+  ;; `setq' at top level only ever set it in the config buffer and every other
+  ;; buffer silently fell back to saving images next to the org file.
+  ;; `setq-default' gives every buffer the intended image directory.
+  (setq-default org-download-image-dir "~/Dropbox/org-notes/.resources")
   (setq org-download-method 'directory
-        org-download-image-dir "~/Dropbox/org-notes/.resources"
         org-download-timestamp "org_%Y%m%d-%H%M%S_"
         org-download-heading-lvl nil
         org-image-actual-width 400
         org-download-screenshot-method
         "wl-paste --type image/png > %s")
-(setq org-download-link-format "[[file:%s]]")
+  (setq org-download-link-format "[[file:%s]]")
 #+END_SRC
 **** Inline Image Settings
 This makes it so you don't have to manually load images each time.
@@ -113,6 +127,12 @@ This makes it so you don't have to manually load images each time.
   (add-hook 'org-babel-after-execute-hook #'org-display-inline-images)
   ;; Refresh images when reverting buffers (e.g. after git pull)
   (add-hook 'after-revert-hook #'org-display-inline-images)
+  ;; Refresh images after yanking into an org buffer (e.g. pasting an image
+  ;; link copied from somewhere else), so it displays right away.
+  (defun my/org-redisplay-after-yank (&rest _)
+    (when (derived-mode-p 'org-mode)
+      (org-redisplay-inline-images)))
+  (advice-add #'yank :after #'my/org-redisplay-after-yank)
 #+END_SRC
 **** Xournal Settings
 I wanted this to make it easier to draw notes directly into org mode and this makes it possible.
@@ -185,7 +205,7 @@ We use the org-fragtog package to make previews for latex a bit nicer.
 #+BEGIN_SRC emacs-lisp :tangle config.el
   (add-hook! 'org-mode-hook 'org-fragtog-mode)
   (setq org-startup-with-latex-preview t
-        org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
+        org-format-latex-options (plist-put org-format-latex-options :scale 1.2))
 #+END_SRC
 **** Appearance Settings
 ***** Special Latex Characters
@@ -278,8 +298,9 @@ A few things to make text a bit easier to view in Org mode so that the line brea
 #+END_SRC
 ***** Olivetti
 We use Olivetti to create a nicer writing environment and then enable it for org mode and markdown.
+Set as a float (0.0–1.0) so it adapts to any window width. 0.6 = 60% body text, 20% margin on each side — just enough centering to be comfortable without feeling like a narrow column.
 #+BEGIN_SRC emacs-lisp :tangle config.el
-  (setq olivetti-body-width 100) ;; or a float, like 0.6 for 60% of window width
+  (setq olivetti-body-width 0.6) ;; 60% of window width — 20% margin on each side
   (add-hook 'org-mode-hook #'olivetti-mode)
   (add-hook 'markdown-mode-hook #'olivetti-mode))
 #+END_SRC
@@ -551,8 +572,12 @@ Be careful when you're messing with this so you don't overwrite the default hotk
 Custom Hotkeys
 - Doom Dashboard Open: ~SPC x h~
 - Paste in screenshot: ~SPC m c p~
+- Paste image from clipboard: ~SPC m c c~
 - Insert Xournal figure: ~SPC m c x~
 - Display all inline images: ~SPC m d i~
+- Undo: ~u~ (normal mode)
+- Redo: ~C-r~ (normal and visual mode) — via =undo-fu-only-redo=
+- Undo visualizer (vundo): ~C-x u~ — browse the full undo tree; navigate with =j=/=k=, every step restores the buffer to that state
 
   Common Hotkeys:
 - Increase text size: ~C-x C-+~
@@ -570,6 +595,15 @@ I use magit all the time and there's way too many hotkeys to memorize even thoug
 - Magit Double Buffer workflow 
   - 
 #+BEGIN_SRC emacs-lisp :tangle config.el
+;; Redo — wrap in after! undo-fu so the functions exist before binding.
+;; u = undo, C-r = redo (standard vim keys via undo-fu).
+;; C-x u opens vundo, a visual undo-tree browser (j/k to navigate history).
+(after! undo-fu
+  (map! :n "u"   #'undo-fu-only-undo
+        :n "C-r" #'undo-fu-only-redo
+        :v "C-r" #'undo-fu-only-redo
+        :n "C-x u" #'vundo))
+
 (map! :leader
       ;; Home / Dashboard
       ;; Ewww
@@ -583,12 +617,13 @@ I use magit all the time and there's way too many hotkeys to memorize even thoug
        :desc "Mark Directory" "x" #'dired-mark)
       (:prefix-map ("x" . "home")
        :desc "Switch to dashboard" "h" #'+doom-dashboard/open)
-      ;; Org mode
-      (:prefix-map ("m" . "org")
-       ;; Capture / insert
-       (:prefix ("c" . "capture")
-        :desc "Paste org screenshot" "p" #'org-download-screenshot
-        :desc "Insert Xournal figure" "x" #'org-xopp-new-figure)
+       ;; Org mode
+       (:prefix-map ("m" . "org")
+        ;; Capture / insert
+        (:prefix ("c" . "capture")
+         :desc "Paste org screenshot" "p" #'org-download-screenshot
+         :desc "Paste image from clipboard" "c" #'org-download-clipboard
+         :desc "Insert Xournal figure" "x" #'org-xopp-new-figure)
        ;; Display / visuals
        (:prefix ("d" . "display")
         :desc "Display inline images" "i" #'org-display-inline-images)))
@@ -628,6 +663,13 @@ Enables automatic visibility toggling depending on cursor position. Hidden eleme
 Make it easier to paste screenshots into org mode.
 #+BEGIN_SRC emacs-lisp :tangle packages.el
 (package! org-download)
+#+END_SRC
+*** Vundo
+Visualizes the full undo/redo history as a tree in a dedicated buffer.
+Walking the tree is a much easier way to redo multiple changes than repeating =C-r=.
+Bound to ~C-x u~ (see the Hotkeys section). Navigate with =j=/=k=; every step restores the buffer to that state.
+#+BEGIN_SRC emacs-lisp :tangle packages.el
+(package! vundo)
 #+END_SRC
 *** Org-modern
 Used to make all the headers prettier in org mode

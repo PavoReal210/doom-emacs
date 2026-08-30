@@ -92,7 +92,7 @@
  markdown
  (nix +lsp)
  (org +pretty +download)
-  python
+ python
  qt
  (ruby +rails)
  (rust +lsp)

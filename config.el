@@ -18,15 +18,9 @@
 
 (when (member "CozetteVector" (font-family-list))
   (set-face-attribute 'default nil :font "Overpass Nerd Font" :height 100)
-  (set-face-attribute 'fixed-pitch nil :family "CozetteVector" :weight 'medium :height 1.2))
+  (set-face-attribute 'fixed-pitch nil :family "CozetteVector" :weight 'medium :height 1.4))
 (when (member "Overpass Nerd Font" (font-family-list))
   (set-face-attribute 'variable-pitch nil :family "Overpass Nerd Font" :height 1.2))
-
-;; Make programming buffers more readable on the 4K display while retaining
-;; CozetteVector for code.
-(defun my/programming-font-scale ()
-  (face-remap-add-relative 'default :family "CozetteVector" :height 1.4))
-(add-hook 'prog-mode-hook #'my/programming-font-scale)
 
 (after! org
   (global-org-modern-mode)
@@ -43,9 +37,21 @@
             ("quote" . "❝")
             ("export" . "󰈇"))))
 
+;; `org-download-clipboard' checks this env var to pick wl-paste vs xclip.
+;; The emacs daemon (systemd service) doesn't inherit a session type, so
+;; clipboard paste used to fail with "Please install xclip". Set it here.
+(setenv "XDG_SESSION_TYPE" "wayland")
+;; WAYLAND_DISPLAY is also not inherited by the Emacs daemon — without it
+;; wl-paste cannot open the compositor socket (produces 0-byte image files).
+(unless (getenv "WAYLAND_DISPLAY")
+  (setenv "WAYLAND_DISPLAY" "wayland-1"))
 (require 'org-download)
+;; NOTE: `org-download-image-dir' is automatically buffer-local, so a plain
+;; `setq' at top level only ever set it in the config buffer and every other
+;; buffer silently fell back to saving images next to the org file.
+;; `setq-default' gives every buffer the intended image directory.
+(setq-default org-download-image-dir "~/Dropbox/org-notes/.resources")
 (setq org-download-method 'directory
-      org-download-image-dir "~/Dropbox/org-notes/.resources"
       org-download-timestamp "org_%Y%m%d-%H%M%S_"
       org-download-heading-lvl nil
       org-image-actual-width 400
@@ -59,6 +65,12 @@
 (add-hook 'org-babel-after-execute-hook #'org-display-inline-images)
 ;; Refresh images when reverting buffers (e.g. after git pull)
 (add-hook 'after-revert-hook #'org-display-inline-images)
+;; Refresh images after yanking into an org buffer (e.g. pasting an image
+;; link copied from somewhere else), so it displays right away.
+(defun my/org-redisplay-after-yank (&rest _)
+  (when (derived-mode-p 'org-mode)
+    (org-redisplay-inline-images)))
+(advice-add #'yank :after #'my/org-redisplay-after-yank)
 
 (defun create-png-xournal-file (&optional only-export)
 "Creates a png from a xournal file and inserts it into the buffer."
@@ -116,7 +128,7 @@
 
 (add-hook! 'org-mode-hook 'org-fragtog-mode)
 (setq org-startup-with-latex-preview t
-      org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
+      org-format-latex-options (plist-put org-format-latex-options :scale 1.2))
 
 (setq org-adapt-indentation t
       org-hide-leading-stars t
@@ -185,13 +197,14 @@
 ;; Disable line numbers in org mode
 (add-hook 'org-mode-hook #'doom-disable-line-numbers-h)
 
-(setq olivetti-body-width 100) ;; or a float, like 0.6 for 60% of window width
+(setq olivetti-body-width 0.6) ;; 60% of window width — 20% margin on each side
 (add-hook 'org-mode-hook #'olivetti-mode)
 (add-hook 'markdown-mode-hook #'olivetti-mode))
 
 (after! ispell
   (setq ispell-program-name "aspell"
-        ispell-dictionary "en"))
+        ispell-dictionary "en"
+        ispell-personal-dictionary (concat doom-user-dir "personal-dict.txt")))
 
 (after! spell-fu
   (setq spell-fu-idle-delay 0.5)
@@ -212,9 +225,9 @@
 
 
 (after! org
-  (setq org-directory "~/Dropbox/org-notes/"
-        org-agenda-files
-        '("~/Dropbox/org-notes/")))
+   (setq org-directory "~/Dropbox/org-notes/"
+         org-agenda-files
+         '("~/Dropbox/org-notes/")))
 
 (setq +doom-dashboard-menu-sections
 '(("Recently opened files" :icon
@@ -259,6 +272,10 @@
 (with-eval-after-load 'tramp
   (with-eval-after-load 'compile
     (remove-hook 'compilation-mode-hook #'tramp-compile-disable-ssh-controlmaster-options)))
+
+(remove-hook 'evil-insert-state-exit-hook #'doom-modeline-update-buffer-file-name)
+(remove-hook 'find-file-hook #'doom-modeline-update-buffer-file-name)
+(remove-hook 'find-file-hook 'forge-bug-reference-setup)
 
 (setq magit-commit-show-diff nil)
 ;; don't show git variables in magit branch
@@ -371,6 +388,15 @@ Works in the Profiler and Transients."
     :around #'describe-function
     (apply #'helpful-symbol args))
 
+;; Redo — wrap in after! undo-fu so the functions exist before binding.
+;; u = undo, C-r = redo (standard vim keys via undo-fu).
+;; C-x u opens vundo, a visual undo-tree browser (j/k to navigate history).
+(after! undo-fu
+  (map! :n "u"   #'undo-fu-only-undo
+        :n "C-r" #'undo-fu-only-redo
+        :v "C-r" #'undo-fu-only-redo
+        :n "C-x u" #'vundo))
+
 (map! :leader
       ;; Home / Dashboard
       ;; Ewww
@@ -384,12 +410,13 @@ Works in the Profiler and Transients."
        :desc "Mark Directory" "x" #'dired-mark)
       (:prefix-map ("x" . "home")
        :desc "Switch to dashboard" "h" #'+doom-dashboard/open)
-      ;; Org mode
-      (:prefix-map ("m" . "org")
-       ;; Capture / insert
-       (:prefix ("c" . "capture")
-        :desc "Paste org screenshot" "p" #'org-download-screenshot
-        :desc "Insert Xournal figure" "x" #'org-xopp-new-figure)
+       ;; Org mode
+       (:prefix-map ("m" . "org")
+        ;; Capture / insert
+        (:prefix ("c" . "capture")
+         :desc "Paste org screenshot" "p" #'org-download-screenshot
+         :desc "Paste image from clipboard" "c" #'org-download-clipboard
+         :desc "Insert Xournal figure" "x" #'org-xopp-new-figure)
        ;; Display / visuals
        (:prefix ("d" . "display")
         :desc "Display inline images" "i" #'org-display-inline-images)))
