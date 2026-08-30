@@ -113,7 +113,8 @@ Note: You DID switch to Wayland and this did break. So this is how you fixed it 
   (setq org-download-method 'directory
         org-download-timestamp "org_%Y%m%d-%H%M%S_"
         org-download-heading-lvl nil
-        org-image-actual-width 400
+        org-image-actual-width nil  ; use each image's actual size — no upscaling small images
+        org-image-max-width 500     ; cap large screenshots so they don't overflow the buffer
         org-download-screenshot-method
         "wl-paste --no-newline --type image/png > %s")
   (setq org-download-link-format "[[file:%s]]")
