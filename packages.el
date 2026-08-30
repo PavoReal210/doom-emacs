@@ -16,6 +16,6 @@
 (package! org-modern)
 
 (package! org-xopp
-:recipe (:host github :repo "mahmoodsh36/org-xopp"
-:files (:defaults "*.sh")
-:pin "cef73dd97d39a70dde8fbe5b5eeab3c42fed8f97"))
+  :recipe (:host github :repo "mahmoodsh36/org-xopp"
+           :files (:defaults "*.sh"))
+  :pin "cef73dd97d39a70dde8fbe5b5eeab3c42fed8f97")
